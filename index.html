@@ -98,7 +98,7 @@ i,.m{font-family:var(--f-math);font-style:italic;font-size:1.08em}
 .cls .opt{font-size:13px;min-width:0;padding:6px 8px}
 .cls .mk{font-weight:900;width:1.2em;text-align:center}
 .gridbox{margin:6px 0}
-.gridbox svg{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.gridbox svg{width:100%;height:auto;display:block;margin:0 auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .task{font-size:15px;margin:6px 0;padding:6px 10px;border-radius:10px;background:var(--orange-soft)}
 .task.done{background:var(--ok-soft);color:var(--ok)}
 .tools{display:flex;gap:8px;flex-wrap:wrap}
@@ -108,7 +108,12 @@ i,.m{font-family:var(--f-math);font-style:italic;font-size:1.08em}
 .seg button.on{background:var(--teal);color:#fff;font-weight:700}
 .num{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
 .num button{border:none;background:var(--bg);width:44px;height:44px;font-size:22px;cursor:pointer}
-.num output{min-width:2.4em;text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.num output{min-width:2.2em;text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.num button.b5{width:40px;font-size:15px;font-weight:700;color:var(--muted)}
+.step .u{font-size:17px;white-space:nowrap}
+.grp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.num.sm button{width:38px}
+.num.sm output{min-width:1.9em;font-size:19px}
 textarea{width:100%;min-height:76px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);resize:vertical}
 .fig{text-align:center;margin:6px 0}
 .fig svg{max-width:100%;height:auto}
@@ -127,7 +132,7 @@ textarea{width:100%;min-height:76px;font:inherit;padding:10px;border:1px solid v
 <script>
 /* ===== 設定：先生の Apps Script の URL をここに入れると「先生に送る」ボタンが出ます ===== */
 const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbwDTyhDfzwPdgLKSRrSBRuZXui0WldtB4BBeJqaaH73M2uCij-evtuSHmSIKgKf24z-/exec";  /* 例: "https://script.google.com/macros/s/XXXX/exec" */
-const APP_VER = "1";
+const APP_VER = "2";
 
 /* ---------- storage (per device) ---------- */
 const KEY = "vecwork.v1";
@@ -175,6 +180,52 @@ fig.sumrule = () => { const t=css('--teal'), o=css('--orange');
 fig.tri = () => { const t=css('--teal'), o=css('--orange'), c=css('--ink');
   return `<svg viewBox="0 0 70 44" width="250">${arrowSvg(6,36,42,36,t,.7,2.6)}${arrowSvg(42,36,42,6,t,.7,2.6)}${arrowSvg(6,36,42,6,o,.7,2.6)}${vecLabel(24,42,'a',t,4)}${vecLabel(48,22,'b',t,4)}<text x="58" y="27" font-size="3.2" fill="${c}" text-anchor="middle">大きさ4</text><text x="30" y="31" font-size="3.2" fill="${c}" text-anchor="middle">大きさ3</text></svg>`; };
 
+function arcSvg(cx,cy,r,a1,a2,col,w){ const f=a=>[cx+r*Math.cos(a*Math.PI/180), cy-r*Math.sin(a*Math.PI/180)]; const [x1,y1]=f(a1),[x2,y2]=f(a2); const large=((a2-a1)%360+360)%360>180?1:0; return `<path d="M${x1},${y1} A${r},${r} 0 ${large} 0 ${x2},${y2}" fill="none" stroke="${col}" stroke-width="${w}"/>`; }
+const jt = (x,y,s,sz,col,a) => `<text x="${x}" y="${y}" font-size="${sz}" fill="${col}" text-anchor="${a||'middle'}">${s}</text>`;
+fig.mult = () => { const t=css('--teal'), o=css('--orange');
+  const tx=(x,y,s,col)=>`<text x="${x}" y="${y}" font-family="STIX Two Text,serif" font-size="3.8" fill="${col}" text-anchor="middle">${s}</text>`;
+  return `<svg viewBox="0 0 106 14" width="360">${arrowSvg(4,10,20,10,t,.6,2.2)}${vecLabel(12,5,'a',t,3.8)}${arrowSvg(28,10,60,10,t,.6,2.2)}${tx(43,6.2,'2',t)}${vecLabel(47,5,'a',t,3.8)}${arrowSvg(84,10,68,10,o,.6,2.2)}${tx(72,6.2,'−',o)}${vecLabel(76,5,'a',o,3.8)}${arrowSvg(92,10,100,10,t,.6,1.8)}${tx(94,6.2,'½',t)}${vecLabel(98,5,'a',t,3.8)}</svg>`; };
+fig.hex = () => { const c=css('--ink'), t=css('--teal'), o=css('--orange'), mu=css('--muted');
+  const R=22,cx=36,cy=30, ang={A:240,B:300,C:0,D:60,E:120,F:180}; const P={};
+  for(const k in ang){ const a=ang[k]*Math.PI/180; P[k]=[cx+R*Math.cos(a), cy-R*Math.sin(a)]; }
+  const ord="ABCDEF".split("");
+  let s=`<polygon points="${ord.map(k=>P[k].join(',')).join(' ')}" fill="none" stroke="${c}" stroke-width=".5"/>`;
+  [["A","D"],["B","E"],["C","F"]].forEach(([u,w])=>s+=`<line x1="${P[u][0]}" y1="${P[u][1]}" x2="${P[w][0]}" y2="${P[w][1]}" stroke="${mu}" stroke-width=".3"/>`);
+  const off={A:[-3,4],B:[3,4],C:[4,1.5],D:[3,-1.5],E:[-3,-1.5],F:[-4.5,1.5]};
+  ord.forEach(k=>s+=`<circle cx="${P[k][0]}" cy="${P[k][1]}" r=".8" fill="${c}"/>`+ptLabel(P[k][0]+off[k][0],P[k][1]+off[k][1],k,c,4.2));
+  s+=`<circle cx="${cx}" cy="${cy}" r=".8" fill="${c}"/>`+ptLabel(cx+1,cy+5,'O',c,4);
+  s+=arrowSvg(P.A[0],P.A[1],P.B[0],P.B[1],t,.75,2.6)+arrowSvg(P.A[0],P.A[1],P.F[0],P.F[1],o,.75,2.6);
+  s+=vecLabel((P.A[0]+P.B[0])/2,P.A[1]+6,'a',t,4.2)+vecLabel((P.A[0]+P.F[0])/2-4.5,(P.A[1]+P.F[1])/2+2,'b',o,4.2);
+  return `<svg viewBox="0 0 72 58" width="270">${s}</svg>`; };
+fig.tire = () => { const c=css('--ink'), t=css('--teal'), o=css('--orange'), mu=css('--muted');
+  let s=`<circle cx="12" cy="24" r="7" fill="none" stroke="${c}" stroke-width=".8"/><circle cx="12" cy="24" r="3.4" fill="none" stroke="${c}" stroke-width=".4"/>`;
+  s+=arrowSvg(19,21,62,3,o,.7,2.6)+`<line x1="19" y1="30" x2="68" y2="30" stroke="${t}" stroke-width=".6" stroke-dasharray="2,1"/>`+arrowSvg(60,30,72,30,t,.6,2.4);
+  s+=`<line x1="62" y1="3" x2="62" y2="21" stroke="${mu}" stroke-width=".35" stroke-dasharray="1,.8"/><line x1="19" y1="21" x2="62" y2="21" stroke="${o}" stroke-width="1.4"/>`;
+  s+=jt(44,8,'引く力',3.2,o)+jt(64,35,'進む向き',3.2,t)+jt(40,26,'役に立つ分（影）',3,o)+arcSvg(19,21,7,0,22.7,c,.3)+jt(29,19.5,'θ',3.4,c);
+  return `<svg viewBox="0 0 80 38" width="320">${s}</svg>`; };
+fig.ang = th => { const t=css('--teal'), o=css('--orange'), c=css('--ink'), mu=css('--muted');
+  const W=50; let ox = th>90?16:6; const oy=22; if(th>=150) ox=22; const la=26, lb=18;
+  const ax=ox+la, bx=ox+lb*Math.cos(th*Math.PI/180), by=oy-lb*Math.sin(th*Math.PI/180);
+  const oy2 = th===0 ? oy-1.6 : oy;
+  let s=`<line x1="2" y1="${oy}" x2="${W-2}" y2="${oy}" stroke="${mu}" stroke-width=".25" stroke-dasharray="1,1"/>`;
+  s+=arrowSvg(ox,oy,ax,oy,t,.6,2.2)+arrowSvg(ox,oy2,bx,by+(oy2-oy),o,.6,2.2);
+  if(th>0&&th<180&&th!==90) s+=`<line x1="${bx}" y1="${by}" x2="${bx}" y2="${oy}" stroke="${mu}" stroke-width=".3" stroke-dasharray="1,.8"/>`;
+  if(th!==0&&th!==180) s+=arcSvg(ox,oy,4.5,0,th,c,.3);
+  s+=vecLabel(ox+la-3,oy+5,'a',t,4.2);
+  let lx=bx+(th<=90?3:-3), ly=th!==0&&th!==180?by-1:by-3.5;
+  if(th===0){lx=ox+lb-4;ly=oy-4.5;} if(th===180){lx=bx+3;ly=oy-4;}
+  s+=vecLabel(lx,ly,'b',o,4.2)+jt(2,6,`θ = ${th}°`,3.4,c,'start');
+  return `<svg viewBox="0 0 50 31" width="240">${s}</svg>`; };
+fig.tri8 = () => { const c=css('--ink'), t=css('--teal'), o=css('--orange'), mu=css('--muted');
+  const A=[10,36],B=[46,36],C=[28,36-36*Math.sqrt(3)/2];
+  let s=`<polygon points="${[A,B,C].map(p=>p.join(',')).join(' ')}" fill="none" stroke="${c}" stroke-width=".5"/><line x1="46" y1="36" x2="72" y2="36" stroke="${mu}" stroke-width=".35" stroke-dasharray="1.4,1"/>`;
+  s+=arrowSvg(A[0],A[1],B[0],B[1],t,.7,2.4)+arrowSvg(B[0],B[1],C[0],C[1],o,.7,2.4);
+  s+=ptLabel(7,40,'A',c,4.2)+ptLabel(47,40.5,'B',c,4.2)+ptLabel(28,C[1]-1.5,'C',c,4.2);
+  s+=arcSvg(46,36,5,0,120,c,.3)+jt(52,31,'？',3.6,c)+jt(64,40,'（のばした線）',2.8,mu);
+  return `<svg viewBox="0 0 76 44" width="300">${s}</svg>`; };
+fig.sq = () => { const c=css('--ink');
+  return `<svg viewBox="0 0 34 34" width="150"><polygon points="5,29 29,29 29,5 5,5" fill="none" stroke="${c}" stroke-width=".6"/>${ptLabel(2,32,'A',c,4)}${ptLabel(32,32,'B',c,4)}${ptLabel(32,5,'C',c,4)}${ptLabel(2,5,'D',c,4)}</svg>`; };
+
 /* item builders */
 const T = html => ({t:"text", html});
 const INFO = (k, html) => ({t:"info", k, html});
@@ -182,7 +233,8 @@ const CH = (q, opts, ans, hint) => ({t:"choice", q, opts, ans, hint});
 const MULTI = (q, opts, ans, hint) => ({t:"multi", q, opts, ans, hint});
 const NUM = (q, ans, hint) => ({t:"num", q, ans, hint});
 const FREE = (q) => ({t:"free", q});
-const FIG = name => ({t:"fig", name});
+const FIG = (name,arg) => ({t:"fig", name, arg});
+const COMP = (q, ans, hint, o) => Object.assign({t:"comp", q, ans, hint}, o||{});
 const CLS = (opts, rows) => ({t:"cls", opts, rows});
 /* draw: grid w×h, points [[x,y,'P']], given arrows [[x,y,dx,dy,'a']], tasks [{s:[x,y], v:[dx,dy], say, label}] */
 const DRAW = (o) => Object.assign({t:"draw"}, o);
@@ -308,18 +360,342 @@ const LESSONS = [
     CH(`${v("AB")} + ${v("BC")} + ${v("CD")} = ?`, ["AD","DA","AC","BD"].map(v), 0),
     CH(`${v("DA")} + ${v("AB")} + ${v("BC")} + ${v("CD")} = ?`, [v("0"),v("DA"),v("AD")], 0, "D から出発して，どこにもどる？")
   ]}
+]},
+{ id:"L4", no:4, title:"何倍・ひき算", sub:"同じ向きにのばす，反対を向く",
+  goal:`${m("k")}${v("a")} と ${v("a")} − ${v("b")} を図でかける。${v("OB")} − ${v("OA")} = ${v("AB")} が使える。`,
+  secs:[
+  {tag:"見る", title:"ベクトルの何倍", items:[
+    FIG("mult"),
+    INFO("ことば", `2${v("a")}：${v("a")} と<b>同じ向き</b>で，長さ<b>2倍</b>。　−${v("a")}：<b>反対の向き</b>で，長さ同じ。<br>${m("k")}${v("a")}（${m("k")} は実数）：${m("k")} &gt; 0 なら同じ向き，${m("k")} &lt; 0 なら反対向き。長さは |${m("k")}| 倍。`),
+    CH(`2${v("a")} は ${v("a")} と？`, ["同じ向きで長さ2倍","反対向きで長さ2倍","同じ向きで長さ½"], 0),
+    CH(`−${v("a")} は ${v("a")} と？`, ["同じ向きで同じ長さ","反対向きで同じ長さ","反対向きで長さ2倍"], 1),
+    CH(`${m("k")} &lt; 0 のとき，${m("k")}${v("a")} の向きは？`, [`${v("a")} と同じ`,`${v("a")} と反対`], 1, "−a が反対向きだったのと同じ。")
+  ]},
+  {tag:"手を動かす", title:"何倍をかく", items:[
+    T("<b>かき方</b>：始点 → 終点の順に方眼の点をタップ。1マス＝1。"),
+    DRAW({w:9,h:6, points:[[1,1,"A"]], given:[[1,5,2,1,"a"]], tasks:[{s:[1,1], v:[4,2], say:`A から 2${v("a")}`, label:"2a"}]}),
+    DRAW({w:8,h:6, points:[[6,3,"B"]], given:[[1,5,2,1,"a"]], tasks:[{s:[6,3], v:[-2,-1], say:`B から −${v("a")}`, label:"−a"}]}),
+    DRAW({w:9,h:6, points:[[2,3,"C"]], given:[[1,6,4,-2,"b"]], tasks:[{s:[2,3], v:[2,-1], say:`C から ½${v("b")}`, label:"½b"}]}),
+    DRAW({w:9,h:6, points:[[1,1,"D"]], given:[[1,5,2,1,"a"]], tasks:[{s:[1,1], v:[6,3], say:`D から 3${v("a")}`, label:"3a"}]}),
+    DRAW({w:9,h:6, points:[[6,2,"E"]], given:[[1,6,4,-2,"b"]], tasks:[{s:[6,2], v:[-2,1], say:`E から −½${v("b")}`, label:"−½b"}]})
+  ]},
+  {tag:"手を動かす", title:"ひき算は「逆向きをたす」", items:[
+    INFO("ひき算のルール", `${v("a")} − ${v("b")} = ${v("a")} + (−${v("b")})　…　${v("b")} を反対向きにしてからたす。<br>始点をそろえてかくと，${v("a")} − ${v("b")} は <b>${v("b")} の終点から ${v("a")} の終点へ</b> の矢印。`),
+    DRAW({w:10,h:7, points:[[1,3,"S"]], given:[[6,1,3,2,"a"],[6,6,1,-1,"b"]], tasks:[
+      {s:[1,3], v:[3,2], say:`S から ${v("a")}`, label:"a"},
+      {s:[4,5], v:[-1,1], say:`つづけて −${v("b")}（${v("b")} の逆向き）`, label:"−b"},
+      {s:[1,3], v:[2,3], say:`S から ${v("a")} − ${v("b")}`, label:"a−b"}]}),
+    DRAW({w:10,h:7, points:[[1,3,"O"]], given:[[6,1,3,2,"a"],[6,6,1,-1,"b"]], tasks:[
+      {s:[1,3], v:[3,2], say:`O から ${v("a")}`, label:"a"},
+      {s:[1,3], v:[1,-1], say:`O から ${v("b")}`, label:"b"},
+      {s:[2,2], v:[2,3], say:`${v("b")} の終点から ${v("a")} の終点へ`, label:"a−b"}]}),
+    COMP("どちらの矢印も，右へ□，上へ□ だった。", [2,3], "a = (3, 2)，b = (1, −1)。a の動きから b の動きを引く。", {lab:["右へ","上へ"]})
+  ]},
+  {tag:"考える", title:"いちばん大事な式", items:[
+    CH(`しりとりで ${v("OA")} + ${v("AB")} = ${v("OB")}。${v("OA")} を右辺へ移すと ${v("AB")} = ?`, [`${v("OB")} − ${v("OA")}`,`${v("OA")} − ${v("OB")}`,`${v("OB")} + ${v("OA")}`], 0, "移項すると，OA の符号が変わる。"),
+    INFO("つまずき注意", `${v("AB")} = ${v("OB")} − ${v("OA")}　<b>「終点 − 始点」</b>（うしろの文字 − 前の文字）。順番を逆にしやすい！`),
+    CH(`${v("OB")} − ${v("OA")} = ?`, ["AB","BA","OA"].map(v), 0),
+    CH(`${v("OA")} − ${v("OB")} = ?`, ["AB","BA","OA"].map(v), 1, "終点 − 始点。終点はどっち？"),
+    CH(`${v("AC")} − ${v("AB")} = ?`, ["BC","CB","BA"].map(v), 0, "A が同じ。うしろの文字どうしを見よう。"),
+    CH(`${v("PQ")} = □ − □。□ に入るのは？`, [`${v("OQ")} − ${v("OP")}`,`${v("OP")} − ${v("OQ")}`,`${v("PQ")} − ${v("OQ")}`], 0)
+  ]},
+  {tag:"解く", title:"組み合わせてかく", items:[
+    DRAW({w:10,h:8, points:[[5,2,"S"]], given:[[0,7,2,1,"a"],[3,8,1,-2,"b"]], tasks:[
+      {s:[5,2], v:[4,2], say:`S から 2${v("a")}`, label:"2a"},
+      {s:[9,4], v:[1,-2], say:`つづけて ${v("b")}`, label:"b"},
+      {s:[5,2], v:[5,0], say:`S から 2${v("a")} + ${v("b")}`, label:"2a+b"}]}),
+    COMP(`${v("S")} から 2${v("a")} + ${v("b")} は，右へ□，上へ□（動かないときは 0）`, [5,0], null, {lab:["右へ","上へ"]}),
+    DRAW({w:10,h:8, points:[[5,1,"T"]], given:[[0,7,2,1,"a"],[3,8,1,-2,"b"]], tasks:[
+      {s:[5,1], v:[2,1], say:`T から ${v("a")}`, label:"a"},
+      {s:[7,2], v:[-2,4], say:`つづけて −2${v("b")}`, label:"−2b"},
+      {s:[5,1], v:[0,5], say:`T から ${v("a")} − 2${v("b")}`, label:"a−2b"}]}),
+    COMP(`${v("T")} から ${v("a")} − 2${v("b")} は，右へ□，上へ□（動かないときは 0）`, [0,5], null, {lab:["右へ","上へ"]})
+  ]}
+]},
+{ id:"L5", no:5, title:"文字式のように計算する", sub:"そして図形の中のベクトルへ",
+  goal:`ベクトルの式を整理できる。図形の中のベクトルを ${v("a")}，${v("b")} で表せる。`,
+  secs:[
+  {tag:"見る", title:"ベクトルの計算は文字式と同じ", items:[
+    INFO("ルール", `ベクトルのたし算・ひき算・何倍は，<b>文字式（${m("x")}，${m("y")} の計算）と同じように</b>計算できる。<br>例　2(${v("a")} + ${v("b")}) + 3${v("a")} = 2${v("a")} + 2${v("b")} + 3${v("a")} = 5${v("a")} + 2${v("b")}<br>ただし ${v("a")} と ${v("b")} は<b>まとめられない</b>（${m("x")} と ${m("y")} をまとめないのと同じ）。`)
+  ]},
+  {tag:"手を動かす", title:"計算練習", items:[
+    CH(`3${v("a")} + 2${v("a")} = ?`, [`5${v("a")}`,`6${v("a")}`,`${v("a")}`,`−${v("a")}`], 0),
+    CH(`2(${v("a")} − ${v("b")}) + 3${v("b")} = ?`, [`2${v("a")} + ${v("b")}`,`2${v("a")} − ${v("b")}`,`2${v("a")} + 5${v("b")}`,`5${v("a")} − ${v("b")}`], 0, "かっこをはずす → a と b ごとにまとめる。"),
+    CH(`3(${v("a")} + 2${v("b")}) − 2(${v("a")} − ${v("b")}) = ?`, [`${v("a")} + 8${v("b")}`,`${v("a")} + 4${v("b")}`,`5${v("a")} + 8${v("b")}`,`${v("a")} + ${v("b")}`], 0, "−2(a − b) = −2a + 2b。符号に注意。")
+  ]},
+  {tag:"手を動かす", title:"図で確かめる", items:[
+    T(`2(${v("a")} + ${v("b")}) と 2${v("a")} + 2${v("b")} は本当に同じ？　つないで確かめよう。`),
+    DRAW({w:12,h:8, points:[[1,1,"P"]], given:[[7,1,2,1,"a"],[10,1,1,2,"b"]], tasks:[
+      {s:[1,1], v:[2,1], say:`P から ${v("a")}`, label:"a"},
+      {s:[3,2], v:[1,2], say:`つづけて ${v("b")}`, label:"b"},
+      {s:[4,4], v:[2,1], say:`つづけて ${v("a")}`, label:"a"},
+      {s:[6,5], v:[1,2], say:`つづけて ${v("b")}`, label:"b"}]}),
+    COMP("P から行き着いた点は，P から 右へ□，上へ□", [6,6], "a は右2上1，b は右1上2。2回ずつたす。", {lab:["右へ","上へ"]}),
+    DRAW({w:12,h:8, points:[[1,1,"Q"]], given:[[7,1,2,1,"a"],[10,1,1,2,"b"]], tasks:[
+      {s:[1,1], v:[2,1], say:`Q から ${v("a")}`, label:"a"},
+      {s:[3,2], v:[2,1], say:`つづけて ${v("a")}`, label:"a"},
+      {s:[5,3], v:[1,2], say:`つづけて ${v("b")}`, label:"b"},
+      {s:[6,5], v:[1,2], say:`つづけて ${v("b")}`, label:"b"}]}),
+    COMP("Q から行き着いた点は，Q から 右へ□，上へ□", [6,6], null, {lab:["右へ","上へ"]}),
+    CH(`2(${v("a")} + ${v("b")}) と 2${v("a")} + 2${v("b")} は？`, ["同じ","ちがう"], 0)
+  ]},
+  {tag:"考える", title:"平行の条件", items:[
+    INFO("ことば", `${v("0")} でない ${v("a")}，${v("b")} の向きが同じか反対のとき，${v("a")} と ${v("b")} は <b>平行</b> といい，${v("a")} ∥ ${v("b")} と書く。<br>${v("a")} ∥ ${v("b")}　⇔　${v("b")} = ${m("k")}${v("a")} となる実数 ${m("k")} がある（「何倍かすれば重なる」）`),
+    MULTI(`${v("a")} と ${v("b")} は平行でないとする。${v("a")} と<b>平行</b>なものをすべて選ぼう`, [`3${v("a")}`,`−2${v("a")}`,`${v("a")} + ${v("b")}`,`½${v("a")}`,`${v("b")}`], [0,1,3], "a の何倍かになっているものを選ぶ。")
+  ]},
+  {tag:"考える", title:"正六角形の中のベクトル", items:[
+    FIG("hex"),
+    T(`正六角形 ABCDEF，中心 O。${v("AB")} = ${v("a")}，${v("AF")} = ${v("b")} とする。`),
+    MULTI(`<b>STEP1</b>　${v("a")} と<b>等しい</b>矢印を3つ選ぼう`, ["ED","DE","FO","CO","OC","BC"].map(v), [0,2,4], "AB と同じ向き（右向き）で同じ長さ。"),
+    MULTI(`<b>STEP2</b>　${v("b")} と<b>等しい</b>矢印を3つ選ぼう`, ["BO","OB","CD","DC","OE","EO"].map(v), [0,2,4], "AF と同じ向き（左上向き）で同じ長さ。")
+  ]},
+  {tag:"解く", title:`${v("a")}，${v("b")} で表そう`, items:[
+    FIG("hex"),
+    T("しりとりで分けてから，STEP1・2で見つけた矢印に置きかえる。"),
+    CH(`${v("AO")} = ${v("AB")} + ${v("BO")} = ?`, [`${v("a")} + ${v("b")}`,`${v("a")} − ${v("b")}`,`2${v("a")} + ${v("b")}`,`${v("a")} + 2${v("b")}`], 0, "BO は b と等しい。"),
+    NUM(`${v("AD")} は ${v("AO")} の何倍？`, 2, "A から D まで，中心 O を通ってまっすぐ。"),
+    CH(`${v("AD")} = ?`, [`2${v("a")} + 2${v("b")}`,`${v("a")} + ${v("b")}`,`3${v("a")} + 3${v("b")}`,`2${v("a")} + ${v("b")}`], 0),
+    CH(`${v("AC")} = ${v("AB")} + ${v("BC")} = ?　（${v("BC")} は ${v("AO")} と等しい）`, [`2${v("a")} + ${v("b")}`,`${v("a")} + 2${v("b")}`,`${v("a")} + ${v("b")}`,`3${v("a")} + ${v("b")}`], 0, "BC = AO = a + b。"),
+    CH(`${v("AE")} = ${v("AF")} + ${v("FE")} = ?　（${v("FE")} は ${v("AO")} と等しい）`, [`${v("a")} + 2${v("b")}`,`2${v("a")} + ${v("b")}`,`${v("a")} + ${v("b")}`,`${v("a")} + 3${v("b")}`], 0, "FE = AO = a + b。"),
+    CH(`${v("BF")} = ${v("AF")} − ${v("AB")} = ?　（第4回「終点 − 始点」）`, [`${v("b")} − ${v("a")}`,`${v("a")} − ${v("b")}`,`${v("a")} + ${v("b")}`,`2${v("b")} − ${v("a")}`], 0)
+  ]}
+]},
+{ id:"L6", no:6, title:"成分で表す", sub:"「右へ3，上へ2」を (3, 2) と書く",
+  goal:"ベクトルを成分で表し，大きさを計算できる。",
+  secs:[
+  {tag:"見る", title:"矢印を数で言う", items:[
+    T(`第1回の「右へ3，上へ2」は，数の組で ${m("(3, 2)")} と書ける。<b>右と上はプラス，左と下はマイナス</b>。`),
+    INFO("ことば", `ベクトル ${v("a")} を ${v("a")} = (${m("a<sub>1</sub>")}, ${m("a<sub>2</sub>")}) と表すことを <b>成分表示</b> という。<br>${m("a<sub>1</sub>")} を <b>${m("x")} 成分</b>（左右の動き），${m("a<sub>2</sub>")} を <b>${m("y")} 成分</b>（上下の動き）という。`)
+  ]},
+  {tag:"手を動かす", title:"読む・かく", items:[
+    T("<b>練習1</b>　成分で表そう。"),
+    COMP(`${v("p")} を成分で`, [4,2], "右へ4，上へ2 → (4, 2)", {g:{w:6,h:4, arrows:[[1,1,4,2,"p"]]}}),
+    COMP(`${v("q")} を成分で`, [-3,1], "左はマイナス。", {g:{w:5,h:3, arrows:[[4,1,-3,1,"q"]]}}),
+    COMP(`${v("r")} を成分で`, [2,-3], "下はマイナス。", {g:{w:4,h:5, arrows:[[1,4,2,-3,"r"]]}}),
+    COMP(`${v("s")} を成分で`, [-2,-2], "左も下もマイナス。", {g:{w:4,h:4, arrows:[[3,3,-2,-2,"s"]]}}),
+    T("<b>練習2</b>　原点 O を始点にして，次のベクトルをかこう。（中心の O からスタート）"),
+    DRAW({w:10,h:7, axes:[5,4], tasks:[
+      {s:[5,4], v:[2,3], say:`${v("a")} = (2, 3)`, label:"a"},
+      {s:[5,4], v:[-3,1], say:`${v("b")} = (−3, 1)`, label:"b"},
+      {s:[5,4], v:[0,-2], say:`${v("c")} = (0, −2)`, label:"c"},
+      {s:[5,4], v:[4,-3], say:`${v("d")} = (4, −3)`, label:"d"},
+      {s:[5,4], v:[-4,-3], say:`${v("e")} = (−4, −3)`, label:"e"}]})
+  ]},
+  {tag:"手を動かす", title:"大きさを成分で", items:[
+    INFO("大きさの公式", `${v("a")} = (${m("a<sub>1</sub>")}, ${m("a<sub>2</sub>")}) のとき　|${v("a")}| = √(${m("a<sub>1</sub><sup>2</sup>")} + ${m("a<sub>2</sub><sup>2</sup>")})<br>第2回で使った三平方の定理と同じこと。`),
+    NUM(`例　${v("a")} = (3, −4) のとき |${v("a")}| = √(3² + (−4)²) = ?`, 5, "9 + 16 = 25")
+  ]},
+  {tag:"考える", title:"等しいベクトルを成分で", items:[
+    T(`2つのベクトルが等しい　⇔　${m("x")} 成分どうし，${m("y")} 成分どうしが<b>どちらも</b>等しい。`),
+    NUM(`(${m("x")}, 3) = (2, ${m("y")} + 1) のとき ${m("x")} = ?`, 2),
+    NUM(`同じとき ${m("y")} = ?（${m("y")} + 1 = 3 より）`, 2)
+  ]},
+  {tag:"解く", title:"練習", items:[
+    NUM(`|(3, 4)| = ?`, 5),
+    NUM(`|(−5, 12)| = ?`, 13, "25 + 144 = 169"),
+    CH(`|(2, −2)| = ?`, ["2√2","4","√2","2"], 0, "4 + 4 = 8。√8 = 2√2"),
+    CH(`|(1, −3)| = ?`, ["√10","4","√8","10"], 0),
+    NUM(`|(−6, 0)| = ?`, 6, "大きさはマイナスにならない。"),
+    NUM(`(${m("x")} + 1, 6) = (3, 2${m("y")}) のとき ${m("x")} = ?`, 2),
+    NUM(`同じとき ${m("y")} = ?`, 3)
+  ]}
+]},
+{ id:"L7", no:7, title:"成分で計算する", sub:"計算したら，かいて確かめる",
+  goal:`成分の計算が「矢印をつなぐこと」と同じだとわかる。2点 A，B から ${v("AB")} がつくれる。`,
+  secs:[
+  {tag:"見る", title:`${m("x")} は ${m("x")} どうし，${m("y")} は ${m("y")} どうし`, items:[
+    T(`第3回：${v("a")}「右へ3，上へ1」と ${v("b")}「右へ1，上へ2」をつなぐと「右へ4，上へ3」。成分で書くと　${m("(3, 1) + (1, 2) = (4, 3)")}　…　<b>右は右どうし，上は上どうしたしただけ</b>。`),
+    INFO("成分の計算", `(${m("a<sub>1</sub>")}, ${m("a<sub>2</sub>")}) + (${m("b<sub>1</sub>")}, ${m("b<sub>2</sub>")}) = (${m("a<sub>1</sub>")} + ${m("b<sub>1</sub>")}, ${m("a<sub>2</sub>")} + ${m("b<sub>2</sub>")})　ひき算も同じ。<br>${m("k")}(${m("a<sub>1</sub>")}, ${m("a<sub>2</sub>")}) = (${m("k")}${m("a<sub>1</sub>")}, ${m("k")}${m("a<sub>2</sub>")})　…　「${m("k")} 回くり返す」ので，右も上も ${m("k")} 倍。`)
+  ]},
+  {tag:"手を動かす", title:"計算して，かいて確かめる", items:[
+    T(`${v("a")} = (2, 1)，${v("b")} = (−1, 3) とする。<b>まず計算</b>し，<b>次に O から矢印をつないでかき</b>，行き着いた点と計算が合うか確かめよう。（中心の O からスタート）`),
+    COMP(`${v("a")} + ${v("b")} = ?`, [1,4], "x 成分どうし，y 成分どうし。"),
+    DRAW({w:9,h:9, axes:[3,3], tasks:[
+      {s:[3,3], v:[2,1], say:`O から ${v("a")}`, label:"a"},
+      {s:[5,4], v:[-1,3], say:`つづけて ${v("b")}`, label:"b"},
+      {s:[3,3], v:[1,4], say:`O から ${v("a")} + ${v("b")}（計算した成分）`, label:"a+b"}]}),
+    COMP(`2${v("a")} + ${v("b")} = ?`, [3,5], "2a = (4, 2)"),
+    DRAW({w:9,h:9, axes:[3,3], tasks:[
+      {s:[3,3], v:[2,1], say:`O から ${v("a")}`, label:"a"},
+      {s:[5,4], v:[2,1], say:`つづけて ${v("a")}`, label:"a"},
+      {s:[7,5], v:[-1,3], say:`つづけて ${v("b")}`, label:"b"},
+      {s:[3,3], v:[3,5], say:`O から 2${v("a")} + ${v("b")}`, label:"2a+b"}]}),
+    COMP(`${v("a")} − ${v("b")} = ?`, [3,-2], "a − b = a + (−b)。−b = (1, −3)"),
+    DRAW({w:9,h:9, axes:[3,3], tasks:[
+      {s:[3,3], v:[2,1], say:`O から ${v("a")}`, label:"a"},
+      {s:[5,4], v:[1,-3], say:`つづけて −${v("b")}（${v("b")} の逆向き）`, label:"−b"},
+      {s:[3,3], v:[3,-2], say:`O から ${v("a")} − ${v("b")}`, label:"a−b"}]}),
+    FREE("計算と図，どちらが楽だった？ それぞれのよいところは？")
+  ]},
+  {tag:"手を動かす", title:"2点からベクトルをつくる", items:[
+    INFO("終点 − 始点", `A(${m("a<sub>1</sub>")}, ${m("a<sub>2</sub>")})，B(${m("b<sub>1</sub>")}, ${m("b<sub>2</sub>")}) のとき<br>${v("AB")} = (${m("b<sub>1</sub>")} − ${m("a<sub>1</sub>")}, ${m("b<sub>2</sub>")} − ${m("a<sub>2</sub>")})<br>「A から B まで，右へいくつ・上へいくつ？」を引き算で求めている。`),
+    DRAW({w:8,h:7, axes:[1,1], view:true, points:[[2,3,"A"],[5,7,"B"]], given:[[2,3,3,4,null]]}),
+    COMP(`図：A(1, 2)，B(4, 6)　${v("AB")} = ?`, [3,4], "終点 − 始点：(4 − 1, 6 − 2)"),
+    NUM(`|${v("AB")}| = ?`, 5, "3² + 4² = 25"),
+    COMP(`A(−2, 3)，B(1, −1)　${v("AB")} = ?`, [3,-4], "(1 − (−2), −1 − 3)"),
+    NUM(`同じとき |${v("AB")}| = ?`, 5)
+  ]},
+  {tag:"考える", title:"平行を成分で見る", items:[
+    DRAW({w:10,h:7, view:true, points:[[1,1,"O"]], given:[[1,1,2,3,"a"]]}),
+    T(`${v("a")} = (2, 3) と平行なベクトルは，${v("a")} を何倍かしたもの。`),
+    COMP(`2${v("a")} = ?`, [4,6]),
+    COMP(`−${v("a")} = ?`, [-2,-3]),
+    NUM(`${v("b")} = (${m("x")}, 6) が ${v("a")} と平行なら，${m("y")} 成分 3 → 6 で何倍？`, 2),
+    NUM(`このとき ${m("x")} = ?`, 4, "x 成分も同じ倍率。2 × 2")
+  ]},
+  {tag:"解く", title:"平行を見ぬく", items:[
+    MULTI(`${v("a")} = (1, −2) と平行なものすべて`, ["(2, −4)","(−3, 6)","(2, 1)","(−1, 2)"], [0,1,3], "a の何倍かになっているものを選ぶ。"),
+    NUM(`${v("a")} = (1, −2)，${v("b")} = (${m("x")}, 4) が平行になる ${m("x")} = ?`, -2, "y 成分 −2 → 4 は −2 倍。"),
+    MULTI(`(3, 1) と平行なベクトルをすべて選ぼう`, ["(6, 2)","(−3, −1)","(1, 3)","(9, 3)","(3, 2)"], [0,1,3], "(3, 1) の何倍か。"),
+    FREE("平行なベクトルを自分でもう1つつくってみよう。どうやってつくった？")
+  ]}
+]},
+{ id:"L8", no:8, title:"内積（1）", sub:"「影」でとらえるベクトルのかけ算",
+  goal:"内積の意味をつかみ，大きさと角度から内積を計算できる。",
+  secs:[
+  {tag:"見る", title:"タイヤ引きトレーニング", items:[
+    FIG("tire"),
+    T("ロープを斜めに引くと，進む向きに<b>役に立つのは力の「影」の部分だけ</b>。この「影 × 長さ」を表すのが<b>内積</b>。"),
+    CH("ロープを斜めに引いたとき，進む向きに役に立つのは？", ["力の全部","力の「影」の部分だけ","力の2倍"], 1),
+    INFO("内積の定義", `${v("a")} と ${v("b")} の始点をそろえたときの角を ${m("θ")}（0° ≦ ${m("θ")} ≦ 180°）とする。<br><b>${v("a")} · ${v("b")} = |${v("a")}| |${v("b")}| cos ${m("θ")}</b>（「${m("a")} ドット ${m("b")}」と読む）<br>内積の答えは<b>ただの数</b>。ベクトル（矢印）ではない！`),
+    INFO("cos の値（参考）", "cos 0° = 1　／　cos 30° = √3⁄2　／　cos 45° = 1⁄√2<br>cos 60° = 1⁄2　／　cos 90° = 0<br>cos 120° = −1⁄2　／　cos 135° = −1⁄√2<br>cos 150° = −√3⁄2　／　cos 180° = −1")
+  ]},
+  {tag:"手を動かす", title:"角度を変えると内積はどうなる？", items:[
+    T(`|${v("a")}| = 4，|${v("b")}| = 3 として，角度 ${m("θ")} を変えてみる。`),
+    FIG("ang",0),
+    CH("θ = 0° のとき cos θ は？", ["1","1/2","0","−1/2","−1"], 0),
+    NUM(`内積 = 4 × 3 × cos θ = ?`, 12),
+    FIG("ang",60),
+    CH("θ = 60° のとき cos θ は？", ["1","1/2","0","−1/2","−1"], 1),
+    NUM(`内積 = ?`, 6, "4 × 3 × 1/2"),
+    FIG("ang",90),
+    CH("θ = 90° のとき cos θ は？", ["1","1/2","0","−1/2","−1"], 2),
+    NUM(`内積 = ?`, 0, "影の長さが 0 になる。"),
+    FIG("ang",120),
+    CH("θ = 120° のとき cos θ は？", ["1","1/2","0","−1/2","−1"], 3),
+    NUM(`内積 = ?`, -6, "4 × 3 × (−1/2)"),
+    FIG("ang",180),
+    CH("θ = 180° のとき cos θ は？", ["1","1/2","0","−1/2","−1"], 4),
+    NUM(`内積 = ?`, -12),
+    CH("角が 90° より<b>小さい</b>と，内積は？", ["正","0","負"], 0),
+    CH("角が <b>90°</b> だと，内積は？", ["正","0","負"], 1),
+    CH("角が 90° より<b>大きい</b>と，内積は？", ["正","0","負"], 2)
+  ]},
+  {tag:"考える", title:"角は「始点をそろえて」測る", items:[
+    FIG("tri8"),
+    T("1辺の長さ 2 の正三角形 ABC。"),
+    CH(`${v("AB")} と ${v("AC")} のなす角は？（A から2本出ている）`, ["30°","60°","120°"], 1),
+    NUM(`${v("AB")} · ${v("AC")} = 2 × 2 × cos 60° = ?`, 2),
+    CH(`${v("AB")} を B の先へのばして ${v("BC")} と始点をそろえると，${v("AB")} と ${v("BC")} のなす角は？`, ["60°","120°","30°"], 1, "図の「？」の角。まっすぐ（180°）から 60° を引く。"),
+    NUM(`${v("AB")} · ${v("BC")} = 2 × 2 × cos 120° = ?`, -2),
+    INFO("つまずき注意", `${v("AB")} と ${v("BC")} のなす角を 60° としてしまうミスが多い。矢印の<b>しっぽ（始点）をそろえて</b>から角を見る。`)
+  ]},
+  {tag:"解く", title:"練習", items:[
+    INFO("覚えておくと便利", `${v("a")} · ${v("a")} = |${v("a")}| |${v("a")}| cos 0° = |${v("a")}|²　（自分自身との内積は「大きさの2乗」）`),
+    CH(`|${v("a")}| = 2，|${v("b")}| = 5，${m("θ")} = 45° のとき ${v("a")} · ${v("b")} = ?`, ["5√2","10","5","10√2"], 0, "2 × 5 × cos 45° = 10 × (1/√2)"),
+    CH(`|${v("a")}| = 3，|${v("b")}| = 4，${m("θ")} = 150° のとき ${v("a")} · ${v("b")} = ?`, ["−6√3","6√3","−12","−6"], 0, "3 × 4 × (−√3/2)"),
+    NUM(`|${v("a")}| = 6，|${v("b")}| = 2，${m("θ")} = 90° のとき ${v("a")} · ${v("b")} = ?`, 0),
+    FIG("sq"),
+    NUM(`1辺 3 の正方形 ABCD で ${v("AB")} · ${v("AD")} = ?`, 0, "AB と AD のなす角は？"),
+    NUM(`同じ正方形で ${v("AB")} · ${v("AC")} = ?　（AC は対角線。なす角 45°，|AC| = 3√2）`, 9, "3 × 3√2 × cos 45° = 3 × 3√2 × (√2/2)"),
+    NUM(`|${v("a")}| = 5 のとき ${v("a")} · ${v("a")} = ?`, 25)
+  ]}
+]},
+{ id:"L9", no:9, title:"内積（2）", sub:"成分で計算する",
+  goal:"「影 × 長さ」と「かけて，たす」が同じ内積だとわかり，垂直を見ぬける。",
+  secs:[
+  {tag:"見る", title:"かけて，たす", items:[
+    INFO("内積の成分計算", `${v("a")} = (${m("a<sub>1</sub>")}, ${m("a<sub>2</sub>")})，${v("b")} = (${m("b<sub>1</sub>")}, ${m("b<sub>2</sub>")}) のとき<br><b>${v("a")} · ${v("b")} = ${m("a<sub>1</sub>b<sub>1</sub>")} + ${m("a<sub>2</sub>b<sub>2</sub>")}</b>　（${m("x")} どうし，${m("y")} どうしかけて，たす）`),
+    T(`<b>本当に同じになるか確かめよう</b>　${v("a")} = (3, 0)，${v("b")} = (2, 2)`),
+    DRAW({w:5,h:4, view:true, points:[[1,1,"O"]], given:[[1,1,3,0,"a"],[1,1,2,2,"b"]]}),
+    NUM(`【定義で】 |${v("a")}| = ?`, 3),
+    CH(`|${v("b")}| = ?`, ["2√2","2","4","√2"], 0, "右へ2，上へ2 → 4 + 4 = 8"),
+    CH(`${v("a")} と ${v("b")} のなす角 ${m("θ")} は？`, ["30°","45°","60°","90°"], 1, "b は右へ2，上へ2。斜め45°。"),
+    NUM(`${v("a")} · ${v("b")} = |${v("a")}| |${v("b")}| cos ${m("θ")} = ?`, 6, "3 × 2√2 × (√2/2)"),
+    NUM(`【成分で】 3 × 2 + 0 × 2 = ?`, 6)
+  ]},
+  {tag:"手を動かす", title:"影の長さを方眼で数える", items:[
+    T(`${v("a")} = (4, 0)（${m("x")} 軸の向き）に，${v("b")} の先から垂直に線を下ろした<b>影</b>を考える。影が ${v("a")} と逆向き（左）にのびたら，影の長さはマイナスで数える。`),
+    DRAW({w:7,h:4, axes:[3,1], points:[[3,1,"O"]], given:[[3,1,4,0,"a"],[3,1,3,2,"b"]], tasks:[{s:[3,1], v:[3,0], c:"o", say:`${v("b")} = (3, 2) の影（${m("x")} 軸の上）をかこう`}]}),
+    NUM(`影の長さ（${v("b")} = (3, 2)）`, 3),
+    NUM(`|${v("a")}| × 影 = ?`, 12),
+    NUM(`成分で ${v("a")} · ${v("b")} = 4 × 3 + 0 × 2 = ?`, 12),
+    DRAW({w:7,h:5, axes:[3,1], points:[[3,1,"O"]], given:[[3,1,4,0,"a"],[3,1,-2,3,"b"]], tasks:[{s:[3,1], v:[-2,0], c:"o", say:`${v("b")} = (−2, 3) の影をかこう（左向き）`}]}),
+    NUM(`影の長さ（${v("b")} = (−2, 3)）`, -2, "左向きの影はマイナス。"),
+    NUM(`|${v("a")}| × 影 = ?`, -8),
+    NUM(`成分で ${v("a")} · ${v("b")} = 4 × (−2) + 0 × 3 = ?`, -8),
+    NUM(`影の長さ（${v("b")} = (0, 3)）`, 0, "b は真上。影は点になる。"),
+    NUM(`成分で ${v("a")} · ${v("b")} = 4 × 0 + 0 × 3 = ?`, 0),
+    CH(`「|${v("a")}| × 影」と「成分で計算した内積」は？`, ["いつも同じ","ちがうことがある"], 0)
+  ]},
+  {tag:"考える", title:"内積の符号で角がわかる", items:[
+    INFO("内積の符号と角", `${v("a")} · ${v("b")} &gt; 0 → 角は 90° より<b>小さい</b>　／　${v("a")} · ${v("b")} = 0 → <b>垂直</b>（90°）　／　${v("a")} · ${v("b")} &lt; 0 → 90° より<b>大きい</b><br>第8回の「影」が，同じ向き・ない・逆向きのどれか，ということ。`),
+    T("内積を計算し，角が（小・直角・大）のどれかを答えよう。<br>ノートの方眼に O から2本ともかいて確かめるとよい。"),
+    NUM(`(2, 3) · (3, 1) = ?`, 9),
+    CH("角は？", ["小","直角","大"], 0),
+    NUM(`(2, 1) · (−1, 2) = ?`, 0),
+    CH("角は？", ["小","直角","大"], 1),
+    NUM(`(3, 1) · (−1, −2) = ?`, -5),
+    CH("角は？", ["小","直角","大"], 2)
+  ]},
+  {tag:"解く", title:"垂直を見ぬく", items:[
+    INFO("垂直の条件", `${v("0")} でない ${v("a")}，${v("b")} について　${v("a")} ⊥ ${v("b")}　⇔　${v("a")} · ${v("b")} = 0`),
+    NUM(`${v("a")} = (3, ${m("x")})，${v("b")} = (2, −6) が垂直になる ${m("x")} = ?`, 1, "3 × 2 + x × (−6) = 0"),
+    NUM(`${v("a")} = (${m("x")}, 4)，${v("b")} = (2, −1) が垂直になる ${m("x")} = ?`, 2, "x × 2 + 4 × (−1) = 0"),
+    MULTI(`(4, 1) と垂直なベクトルをすべて選ぼう`, ["(1, −4)","(−1, 4)","(1, 4)","(−4, −1)","(2, −8)"], [0,1,4], "(4, 1) との内積を計算して 0 になるもの。"),
+    FREE("垂直なベクトルをどうやって見つけた？")
+  ]}
+]},
+{ id:"L10", no:10, title:"位置ベクトル", sub:"点を「矢印」で指す",
+  goal:"点の位置を「O からの矢印」で表し，線分を分ける点を「どこまで進んだか」で求められる。",
+  secs:[
+  {tag:"見る", title:"基準点を決める", items:[
+    T("グラウンドのセンターマークを基準点 O に決めると，どの選手の位置も「O からの矢印」で言える。"),
+    INFO("ことば", `基準点 O を決めて，点 A の位置を ${v("a")} = ${v("OA")} で表す。これを A の <b>位置ベクトル</b> といい，A(${v("a")}) と書く。<br>A(${v("a")})，B(${v("b")}) のとき　${v("AB")} = ${v("b")} − ${v("a")}（第4回「終点 − 始点」）`),
+    CH(`A(${v("a")})，B(${v("b")}) のとき ${v("AB")} = ?`, [`${v("b")} − ${v("a")}`,`${v("a")} − ${v("b")}`,`${v("a")} + ${v("b")}`], 0, "終点 − 始点。")
+  ]},
+  {tag:"手を動かす", title:"中点をつくる", items:[
+    T("<b>図</b>：A(1, 4)，B(5, 2)。（中心の O が原点）"),
+    DRAW({w:8,h:6, axes:[1,1], points:[[2,5,"A"],[6,3,"B"]], tasks:[
+      {s:[1,1], v:[1,4], say:`O から ${v("OA")}`, label:"OA"},
+      {s:[1,1], v:[5,2], say:`O から ${v("OB")}`, label:"OB"},
+      {s:[2,5], v:[4,-2], say:`A から ${v("AB")}`, label:"AB"},
+      {pt:[4,4], say:"AB の中点 M をタップ", label:"M", ld:[.5,-.35], hint:"A と B の真ん中。右へ2，下へ1 進んだ点。"}]}),
+    CH(`しりとりで M へ行く：${v("OM")} = ${v("OA")} + ½${v("AB")} = ${v("a")} + ½(${v("b")} − ${v("a")}) = ?`, [`½${v("a")} + ½${v("b")}`,`${v("a")} + ${v("b")}`,`½${v("a")} − ½${v("b")}`,`2${v("a")} + 2${v("b")}`], 0, "a − ½a = ½a。"),
+    COMP(`成分で：A(1, 4)，B(5, 2) の中点 M の座標は？`, [3,3], "x 座標は (1 + 5) ÷ 2，y 座標は (4 + 2) ÷ 2。")
+  ]},
+  {tag:"考える", title:"1 : 2 に分ける点", items:[
+    T(`A(1, 4)，B(7, 1)。AB を 1 : 2 に分ける点 P は，A から B へ <b>3歩のうち1歩</b> 進んだ点。`),
+    COMP(`${v("AB")} = ?`, [6,-3], "終点 − 始点：(7 − 1, 1 − 4)"),
+    COMP(`1歩 = ⅓${v("AB")} = ?`, [2,-1]),
+    COMP(`${v("OP")} = ${v("OA")} + ⅓${v("AB")} より，P の座標は？`, [3,3], "(1, 4) + (2, −1)"),
+    T("方眼で A から1歩ずつ進んで，B に3歩で着くか確かめよう。"),
+    DRAW({w:9,h:6, axes:[1,1], points:[[2,5,"A"],[8,2,"B"]], tasks:[
+      {s:[2,5], v:[2,-1], say:"A から 1歩（右へ2，下へ1）"},
+      {s:[4,4], v:[2,-1], say:"もう1歩"},
+      {s:[6,3], v:[2,-1], say:"もう1歩 → B に着く"},
+      {pt:[4,4], say:"A から1歩進んだ点 P をタップ", label:"P", ld:[.5,-.35], hint:"1歩目の終わりの点。"}]}),
+    INFO("位置ベクトルのコツ", "公式を覚えるより，「O から A へ行き，そこから AB を何分のいくつ進むか」と考えればよい。中点は「半分」，1 : 2 は「3分の1」。")
+  ]},
+  {tag:"解く", title:"練習", items:[
+    COMP(`A(2, 1)，B(6, 5) の中点の座標は？`, [4,3]),
+    NUM(`同じ AB を 3 : 1 に分ける点は，A から 4歩のうち何歩進んだ点？`, 3),
+    COMP(`その点（3 : 1 に分ける点）の座標は？`, [5,4], "AB = (4, 4)。1歩 = (1, 1)。A + 3歩"),
+    CH(`AB の中点 M の位置ベクトルを ${v("a")}，${v("b")} で表すと？`, [`½${v("a")} + ½${v("b")}`,`${v("a")} + ½${v("b")}`,`${v("b")} − ${v("a")}`,`½(${v("b")} − ${v("a")})`], 0),
+    CH(`${v("AB")} = ${v("b")} − ${v("a")} になる理由は？`, [`${v("AB")} = ${v("AO")} + ${v("OB")} で，${v("AO")} = −${v("a")}（${v("OA")} の逆向き），${v("OB")} = ${v("b")} だから`,`${v("AB")} = ${v("OA")} + ${v("OB")} だから`,`${v("AB")} = ${v("OB")} + ${v("OA")} だから`], 0),
+    FREE("AB = b − a になる理由を，図を使って自分のことばで説明しよう。")
+  ]}
 ]}
+
 ];
-const COMING = [
-  [4,"何倍・ひき算"],[5,"文字式のように計算する"],[6,"成分で表す"],[7,"成分で計算する"],
-  [8,"内積（1）"],[9,"内積（2）"],[10,"位置ベクトル"]];
+const COMING = [];
 const TAGC = {"見る":"--t1","手を動かす":"--t2","考える":"--t3","解く":"--t4","ふりかえり":"--t5"};
 
 /* assign stable ids and count judged units */
 LESSONS.forEach(les => { let k=0; les.secs.forEach(sec => sec.items.forEach(it => {
   it.id = les.id + "-" + (k++);
   it.units = it.t==="cls" ? it.rows.length : it.t==="draw" ? (it.tasks||[]).length :
-             ["choice","multi","num","read"].includes(it.t) ? 1 : 0;
+             ["choice","multi","num","read","comp"].includes(it.t) ? 1 : 0;
 })); les.total = les.secs.reduce((a,s)=>a+s.items.reduce((b,i)=>b+i.units,0),0); });
 
 function unitKeys(it){
@@ -391,7 +767,7 @@ function renderItem(it){
   const st=L(cur.id);
   if(it.t==="text") return el("p",null,it.html);
   if(it.t==="info") return el("div","card info",`<span class="k">${it.k}</span>${it.html}`);
-  if(it.t==="fig") return el("div","fig",fig[it.name]());
+  if(it.t==="fig") return el("div","fig",fig[it.name](it.arg));
 
   const card=el("div","card");
   if(it.t==="choice"||it.t==="multi"){
@@ -428,15 +804,15 @@ function renderItem(it){
   if(it.t==="num"){
     card.appendChild(el("div","q",it.q));
     const r=st.items[it.id]; let val = r&&r.ok ? it.ans : 0;
-    const row=el("div","step"); const n=el("div","num",`<button type="button" aria-label="1へらす">−</button><output>${val}</output><button type="button" aria-label="1ふやす">＋</button>`);
-    const out=n.querySelector("output"); const [mi,pl]=n.querySelectorAll("button");
-    mi.addEventListener("click",()=>{ val--; out.textContent=val; }); pl.addEventListener("click",()=>{ val++; out.textContent=val; });
+    const row=el("div","step"); const n=numCtl(()=>val,x=>{val=x;},true);
+    const btns=n.querySelectorAll("button");
     const go=el("button","go","こたえる"); go.type="button"; const fb=el("div","fb");
-    go.addEventListener("click",()=>{ const ok=val===it.ans; const rr=mark(it.id,ok);
-      if(ok){ fbSet(fb,true,"○ せいかい！"); go.disabled=mi.disabled=pl.disabled=true; } else fbSet(fb,false,"もう一度", it.hint); });
-    if(r&&r.ok){ go.disabled=mi.disabled=pl.disabled=true; fbSet(fb,true,"○ せいかい！"); }
+    go.addEventListener("click",()=>{ const ok=val===it.ans; mark(it.id,ok);
+      if(ok){ fbSet(fb,true,"○ せいかい！"); go.disabled=true; btns.forEach(b=>b.disabled=true); } else fbSet(fb,false,"もう一度", it.hint); });
+    if(r&&r.ok){ go.disabled=true; btns.forEach(b=>b.disabled=true); fbSet(fb,true,"○ せいかい！"); }
     row.append(n,go); card.append(row,fb); return card;
   }
+  if(it.t==="comp") return renderComp(it, card);
   if(it.t==="free"){
     card.appendChild(el("div","q",it.q));
     const ta=el("textarea"); ta.id="ta-"+it.id; ta.value=st.texts[it.id]||""; ta.addEventListener("input",()=>{ st.texts[it.id]=ta.value; touch(); });
@@ -465,11 +841,17 @@ function renderItem(it){
 }
 
 /* ---------- grid ---------- */
-function gridSvg(w,h,inner){
+function gridSvg(w,h,inner,ax){
   const pad=.7, g=css('--grid'); let s="";
   for(let x=0;x<=w;x++) s+=`<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="${g}" stroke-width=".04"/>`;
   for(let y=0;y<=h;y++) s+=`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="${g}" stroke-width=".04"/>`;
-  return `<svg viewBox="${-pad} ${-pad} ${w+2*pad} ${h+2*pad}" role="img">${s}<g class="inner">${inner}</g></svg>`;
+  if(ax){ const ink=css('--ink'), mu=css('--muted'), ox=ax[0], oy=ax[1], yy=h-oy;
+    s+=`<line x1="0" y1="${yy}" x2="${w}" y2="${yy}" stroke="${ink}" stroke-width=".07"/><line x1="${ox}" y1="0" x2="${ox}" y2="${h}" stroke="${ink}" stroke-width=".07"/>`;
+    const tx=(x,y,t,a,sz,c)=>`<text x="${x}" y="${y}" font-family="STIX Two Text,serif" font-size="${sz}" fill="${c}" text-anchor="${a}">${t}</text>`;
+    for(let i=0;i<=w;i++){ if(i!==ox) s+=tx(i,yy+.5,String(i-ox).replace("-","−"),"middle",.36,mu); }
+    for(let j=0;j<=h;j++){ if(j!==oy) s+=tx(ox-.12,h-j+.13,String(j-oy).replace("-","−"),"end",.36,mu); }
+    s+=tx(ox-.15,yy+.5,"O","end",.5,ink)+tx(w+.15,yy-.12,"x","start",.5,ink)+tx(ox+.12,-.1,"y","start",.5,ink); }
+  return `<svg viewBox="${-pad} ${-pad} ${w+2*pad} ${h+2*pad}" role="img" style="max-width:${Math.round((w+1.4)*54)}px">${s}<g class="inner">${inner}</g></svg>`;
 }
 /* grid coords (y up) -> svg coords */
 const X = x => x, Y = (h,y) => h-y;
@@ -479,13 +861,42 @@ function arrowAt(h, x,y,dx,dy,color,label,side){
   let s=arrowSvg(x1,y1,x2,y2,color,.09,.36);
   if(label){ const L=Math.hypot(dx,dy); const nx=-dy/L, ny=-dx/L; const off=.55*(side||1);
     const lx=(x1+x2)/2+nx*off, ly=(y1+y2)/2+ny*off;
-    s+= label.includes("+") ? `<text x="${lx}" y="${ly+.2}" font-family="STIX Two Text,serif" font-style="italic" font-size=".55" fill="${color}" text-anchor="middle">${label.replace("+"," + ")}</text>` : vecLabel(lx,ly,label,color,.62); }
+    s+= /^[A-Za-z]{1,2}$/.test(label) ? vecLabel(lx,ly,label,color,.62) : `<text x="${lx}" y="${ly+.2}" font-family="STIX Two Text,serif" font-style="italic" font-size=".55" fill="${color}" text-anchor="middle">${label.replace("+"," + ").replace("−"," −")}</text>`; }
   return s;
 }
-function pointAt(h,x,y,name,color){
-  return `<circle cx="${X(x)}" cy="${Y(h,y)}" r=".13" fill="${color}"/>`+(name?ptLabel(X(x)-.38,Y(h,y)+.62,name,color,.62):"");
+function pointAt(h,x,y,name,color,d){
+  d=d||[-.38,.62];
+  return `<circle cx="${X(x)}" cy="${Y(h,y)}" r=".13" fill="${color}"/>`+(name?ptLabel(X(x)+d[0],Y(h,y)+d[1],name,color,.62):"");
 }
 
+function numCtl(get,set,big,small){
+  const bs = big ? [["−5","5へらす",-5,"b5"],["−","1へらす",-1,""],["＋","1ふやす",1,""],["＋5","5ふやす",5,"b5"]] : [["−","1へらす",-1,""],["＋","1ふやす",1,""]];
+  const n=el("div","num"+(small?" sm":""));
+  const mk=b=>{ const x=el("button",b[3],b[0]); x.type="button"; x.setAttribute("aria-label",b[1]); x.addEventListener("click",()=>{ set(get()+b[2]); out.textContent=String(get()).replace("-","−"); }); return x; };
+  const out=el("output",null,String(get()).replace("-","−"));
+  bs.slice(0, big?2:1).forEach(b=>n.appendChild(mk(b))); n.appendChild(out); bs.slice(big?2:1).forEach(b=>n.appendChild(mk(b)));
+  return n;
+}
+function renderComp(it, card){
+  const st=L(cur.id), r=st.items[it.id];
+  card.appendChild(el("div","q",it.q));
+  if(it.g){ const g=it.g, t=css('--teal'), c=css('--ink'); let s="";
+    (g.arrows||[]).forEach(a=>s+=arrowAt(g.h,a[0],a[1],a[2],a[3],t,a[4]||null));
+    (g.points||[]).forEach(p=>s+=pointAt(g.h,p[0],p[1],p[2],c));
+    card.appendChild(el("div","gridbox",gridSvg(g.w,g.h,s,g.axes))); }
+  const vals = r&&r.ok ? it.ans.slice() : [0,0];
+  const row=el("div","step");
+  const c0=numCtl(()=>vals[0],x=>{vals[0]=x;},false,true), c1=numCtl(()=>vals[1],x=>{vals[1]=x;},false,true);
+  const grp=(...n)=>{ const g=el("span","grp"); g.append(...n); return g; };
+  if(it.lab) row.append(grp(el("span","u",it.lab[0]), c0), grp(el("span","u",it.lab[1]), c1));
+  else row.append(grp(el("span","up","("), c0, el("span","up",","), c1, el("span","up",")")));
+  const go=el("button","go","こたえる"); go.type="button"; const fb=el("div","fb");
+  const lock=()=>{ go.disabled=true; row.querySelectorAll("button").forEach(b=>b.disabled=true); };
+  go.addEventListener("click",()=>{ const ok = vals[0]===it.ans[0] && vals[1]===it.ans[1]; mark(it.id,ok);
+    if(ok){ fbSet(fb,true,"○ せいかい！"); lock(); } else fbSet(fb,false,"もう一度", it.hint); });
+  if(r&&r.ok){ lock(); fbSet(fb,true,"○ せいかい！"); }
+  card.append(row,go,fb); return card;
+}
 function renderRead(it, card){
   const st=L(cur.id); const r=st.items[it.id]; const [x,y,dx,dy,name]=it.arrow;
   card.appendChild(el("div","q",`${v(name)} はどれだけ動いている？`));
@@ -530,11 +941,11 @@ function renderDraw(it, card){
     const t=css('--teal'), o=css('--orange'), c=css('--ink'), gv=css('--given');
     let s="";
     (it.given||[]).forEach(a=>s+=arrowAt(it.h,a[0],a[1],a[2],a[3],gv,a[4]));
-    tasks.forEach((tk,i)=>{ if(i<idx) s+=arrowAt(it.h,tk.s[0],tk.s[1],tk.v[0],tk.v[1],t,tk.label||null,-1); });
+    tasks.forEach((tk,i)=>{ if(i<idx){ if(tk.pt) s+=pointAt(it.h,tk.pt[0],tk.pt[1],tk.label||null,o,tk.ld); else s+=arrowAt(it.h,tk.s[0],tk.s[1],tk.v[0],tk.v[1],tk.c==='o'?o:t,tk.label||null,-1); } });
     if(flash) s+=arrowAt(it.h,flash[0],flash[1],flash[2],flash[3],o,null);
     (it.points||[]).forEach(p=>s+=pointAt(it.h,p[0],p[1],p[2],c));
     if(start) s+=`<circle class="pulse" cx="${X(start[0])}" cy="${Y(it.h,start[1])}" r=".26" fill="${o}"/>`;
-    gb.innerHTML=gridSvg(it.w,it.h,s);
+    gb.innerHTML=gridSvg(it.w,it.h,s,it.axes);
     if(!it.view) gb.querySelector("svg").addEventListener("click", onTap);
     list.innerHTML = tasks.map((tk,i)=>`<div class="task ${i<idx?'done':''}">${i<idx?'○ ':(i===idx?'▶ ':'')}${tk.say}</div>`).join("");
     tools.innerHTML="";
@@ -542,7 +953,7 @@ function renderDraw(it, card){
       const sh=el("button","go sub","答えを見る"); sh.type="button";
       sh.addEventListener("click",()=>{ const tk=tasks[idx]; const k=keys[idx]; const r=st.items[k]||(st.items[k]={ok:false,tries:0,first:false}); r.tries++; r.ok=true; r.first=false; save(); updateScore();
         r.shown=true; touch();
-        fbSet(fb,true,`こうかく：始点から ${dirText(tk.v)}`); idx++; start=null; draw(); });
+        fbSet(fb,true,tk.pt?"正しい点はここ。":`こうかく：始点から ${dirText(tk.v)}`); idx++; start=null; draw(); });
       tools.appendChild(sh);
     }
   }
@@ -552,6 +963,10 @@ function renderDraw(it, card){
     const p=pt.matrixTransform(svg.getScreenCTM().inverse());
     const gx=Math.round(p.x), gy=Math.round(it.h-p.y);
     if(gx<0||gx>it.w||gy<0||gy>it.h) return;
+    const tk0=tasks[idx];
+    if(tk0.pt){ const okp = gx===tk0.pt[0] && gy===tk0.pt[1]; mark(keys[idx], okp);
+      if(okp){ fbSet(fb,true,"○ せいかい！"); idx++; start=null; flash=null; draw(); return; }
+      misses[idx]=(misses[idx]||0)+1; fbSet(fb,false,"もう一度", tk0.hint||"目もりを数えて，その点をタップしよう。"); draw(); return; }
     if(!start){ start=[gx,gy]; flash=null; fb.className="fb"; fb.textContent="次に終点をタップ"; draw(); return; }
     if(start[0]===gx && start[1]===gy){ start=null; fb.textContent="始点を取り消した"; draw(); return; }
     const tk=tasks[idx]; const dv=[gx-start[0], gy-start[1]];
