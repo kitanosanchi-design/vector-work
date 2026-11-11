@@ -123,6 +123,21 @@ textarea{width:100%;min-height:76px;font:inherit;padding:10px;border:1px solid v
 .send .sum{font-size:15px;margin-bottom:8px;font-variant-numeric:tabular-nums}
 .send a.go{display:inline-block;text-decoration:none;text-align:center}
 .send small{display:block;color:var(--muted);margin-top:8px}
+.lwrap{display:block}
+.rvrow{display:flex;justify-content:flex-end;align-items:center;margin:-4px 6px 0}
+.rvinfo{font-size:12px;color:var(--muted);margin-right:8px}
+.tag.mini{font-size:11px;padding:1px 8px;margin-right:4px}
+.rvlist{margin:8px 0 4px}
+.rvitem{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.rvitem input{width:22px;height:22px;flex:none}
+.rvitem .rvt{flex:1;min-width:0}
+.rvitem .rvn{font-size:12px;color:var(--muted);text-align:right;flex:none}
+.rvw{color:var(--orange)}
+.rvbtn{border:1.5px solid var(--teal);background:transparent;color:var(--teal);border-radius:999px;padding:4px 14px;min-height:36px;font-size:13px;font-weight:700;cursor:pointer}
+.rvtag{font-size:12px;border-radius:99px;padding:1px 8px;background:var(--orange-soft);color:var(--orange);font-weight:700;margin-left:4px}
+.rvnote{background:var(--orange-soft);border:1px solid var(--orange);border-radius:12px;padding:8px 12px;font-size:14px;margin-bottom:10px}
+.rvact{display:flex;gap:10px;flex-wrap:wrap}
+.rvsmall{display:block;color:var(--muted);margin-top:4px}
 :focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 @media (prefers-reduced-motion:no-preference){.pulse{animation:pl 1s ease-in-out infinite}@keyframes pl{50%{opacity:.35}}}
 </style>
@@ -132,14 +147,29 @@ textarea{width:100%;min-height:76px;font:inherit;padding:10px;border:1px solid v
 <script>
 /* ===== 設定：先生の Apps Script の URL をここに入れると「先生に送る」ボタンが出ます ===== */
 const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbwDTyhDfzwPdgLKSRrSBRuZXui0WldtB4BBeJqaaH73M2uCij-evtuSHmSIKgKf24z-/exec";  /* 例: "https://script.google.com/macros/s/XXXX/exec" */
-const APP_VER = "2";
+const APP_VER = "3";
 
 /* ---------- storage (per device) ---------- */
 const KEY = "vecwork.v1";
-let S = {name:"", num:"", cls:"", lessons:{}};
+let S = {name:"", num:"", cls:"", lessons:{}, rv:{}};
 try{ const raw = localStorage.getItem(KEY); if(raw) S = Object.assign(S, JSON.parse(raw)); }catch(e){}
+if(!S.rv || typeof S.rv!=="object") S.rv = {};
+/* 復習モード：REV に回のidが入っているあいだ、L() は「復習用の別の記録」を返す。
+   本番の記録（S.lessons）には一切さわらない。復習は先生に送らない。 */
+let REV = null;
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
-function L(id){ return S.lessons[id] || (S.lessons[id] = {items:{}, texts:{}, rate:"", sent:false, sentAt:"", active:0, last:0}); }
+function freshState(){ return {items:{}, texts:{}, rate:"", sent:false, sentAt:"", active:0, last:0}; }
+/* 復習の記録：S.rv[id] = {st:復習用の記録, sel:えらんだ所（null=ぜんぶ）, k:何回目, fin:おわった回数, counted:この回を数えたか} */
+function rvGet(id){
+  let r=S.rv[id];
+  if(!r) r=S.rv[id]={st:freshState(), sel:null, k:1, fin:0, counted:false};
+  else if(!r.st){ r = r.items ? {st:r, sel:null, k:1, fin:0, counted:false} : {st:freshState(), sel:null, k:1, fin:0, counted:false}; S.rv[id]=r; }
+  return r;
+}
+function L(id){
+  if(REV===id) return rvGet(id).st;
+  return S.lessons[id] || (S.lessons[id] = freshState());
+}
 /* 取り組み時間：操作と操作の間を最大2分まで足していく */
 function touch(){ if(!cur) return; const st=L(cur.id), now=Date.now(); if(st.last) st.active=(st.active||0)+Math.min(now-st.last,120000); st.last=now; save(); }
 
@@ -703,10 +733,12 @@ function unitKeys(it){
   if(it.t==="draw") return (it.tasks||[]).map((_,i)=>it.id+"."+i);
   return it.units ? [it.id] : [];
 }
-function stats(les){
-  const st=L(les.id); let done=0, first=0, shown=0, tries=0;
-  les.secs.forEach(s=>s.items.forEach(it=>unitKeys(it).forEach(k=>{ const r=st.items[k]; if(r){ tries+=r.tries||0; if(r.ok){done++; if(r.first) first++; if(r.shown) shown++;} } })));
-  return {done, first, shown, tries, total:les.total, minutes:Math.round((st.active||0)/60000)};
+function stats(les, stArg, selArg){
+  const st=stArg||L(les.id); let done=0, first=0, shown=0, tries=0, total=0;
+  const sel = selArg!==undefined ? selArg : ((REV===les.id && !stArg) ? rvGet(les.id).sel : null);
+  les.secs.forEach((sc,si)=>{ if(sel && !sel.includes(si)) return;
+    sc.items.forEach(it=>unitKeys(it).forEach(k=>{ total++; const r=st.items[k]; if(r){ tries+=r.tries||0; if(r.ok){done++; if(r.first) first++; if(r.shown) shown++;} } })); });
+  return {done, first, shown, tries, total: sel ? total : les.total, minutes:Math.round((st.active||0)/60000)};
 }
 function mark(key, ok){
   const st=L(cur.id); const r=st.items[key] || (st.items[key]={ok:false, tries:0, first:false});
@@ -720,7 +752,7 @@ const app = document.getElementById("app");
 let cur = null;
 
 function home(){
-  cur=null;
+  cur=null; REV=null;
   app.innerHTML = `
   <div class="hero"><div class="eb">数学　アスリートコース</div><h1>ベクトル<br>書きこみワーク</h1>
   <p>矢印をかいて，さわって，ベクトルをつかもう。答えるとすぐに○かどうかがわかる。</p></div>
@@ -729,28 +761,83 @@ function home(){
   <div><label for="nm">名前</label><input id="nm" autocomplete="name" value="${esc(S.name)}" placeholder="例：北野 太郎"></div></div>
   <small class="whynote">組・番号・名前は成績の記録に使う。正しく入れよう。</small></div>
   <div class="lessons">${LESSONS.map(les=>{ const s=stats(les), p=Math.round(100*s.done/s.total);
-    return `<button class="lcard" data-l="${les.id}"><span class="no"><span><small>第</small>${les.no}<small>回</small></span></span>
-    <span class="t">${les.title}</span><span class="meta"><span class="track"><span style="width:${p}%"></span></span>${s.done}/${s.total}${L(les.id).sent?' <span class="pill">送信済み</span>':''}</span></button>`; }).join("")}
+    const rv=S.rv[les.id]?rvGet(les.id):null, rs=rv?stats(les,rv.st,rv.sel):null;
+    const info=[]; if(rv&&rv.fin) info.push(`復習 ${rv.fin}回おわった`); if(rv&&!rv.counted&&rs&&rs.done>0) info.push(`復習${rv.fin+1}回目の途中 ${rs.done}/${rs.total}`);
+    const rvBtn = (s.done>=s.total || rv) ? `<div class="rvrow"><span class="rvinfo">${info.join("　")}</span><button class="rvbtn" data-rv="${les.id}">復習する</button></div>` : "";
+    return `<div class="lwrap"><button class="lcard" data-l="${les.id}"><span class="no"><span><small>第</small>${les.no}<small>回</small></span></span>
+    <span class="t">${les.title}</span><span class="meta"><span class="track"><span style="width:${p}%"></span></span>${s.done}/${s.total}${L(les.id).sent?' <span class="pill">送信済み</span>':''}</span></button>${rvBtn}</div>`; }).join("")}
   ${COMING.map(c=>`<div class="lcard soon"><span class="no"><span><small>第</small>${c[0]}<small>回</small></span></span><span class="t">${c[1]}</span><span class="meta">準備中</span></div>`).join("")}
   </div>
-  <p class="note">途中の記録はこのスマホの中に残る（同じスマホ・同じブラウザで開けば続きから）。<b>成績の記録になるのは「先生に送る」で送った内容</b>。各回の最後に必ず送ろう。</p>`;
+  <p class="note">途中の記録はこのスマホの中に残る（同じスマホ・同じブラウザで開けば続きから）。<b>成績の記録になるのは「先生に送る」で送った内容</b>。各回の最後に必ず送ろう。<br>全部できた回は「復習する」で何回でもやり直せる（一部だけも選べる）。復習は成績の記録に入らない（先生に送った記録はそのまま残る）。</p>`;
   const nm=document.getElementById("nm"), nb=document.getElementById("nb"), cl=document.getElementById("cl");
   cl.addEventListener("input",()=>{S.cls=cl.value.trim(); save();});
   nm.addEventListener("input",()=>{S.name=nm.value.trim(); save();});
   nb.addEventListener("input",()=>{S.num=nb.value.trim(); save();});
-  app.querySelectorAll("[data-l]").forEach(b=>b.addEventListener("click",()=>open(b.dataset.l)));
+  app.querySelectorAll("[data-l]").forEach(b=>b.addEventListener("click",()=>open(b.dataset.l,false)));
+  app.querySelectorAll("[data-rv]").forEach(b=>b.addEventListener("click",()=>reviewSetup(b.dataset.rv)));
   window.scrollTo(0,0);
 }
 
-function updateScore(){ const el=document.getElementById("sc"); if(el&&cur){ const s=stats(cur); el.textContent = s.done+" / "+s.total; } const sm=document.getElementById("sendsum"); if(sm&&cur) renderSendSum(); }
+function updateScore(){ const el=document.getElementById("sc"); if(el&&cur){ const s=stats(cur); el.textContent = s.done+" / "+s.total; } const sm=document.getElementById("sendsum"); if(sm&&cur) renderSendSum(); if(REV&&cur) renderRvEnd(); }
 
-function open(id){
+function plainTitle(t){ return String(t).replace(/<[^>]*>/g,""); }
+function reviewSetup(id){
+  cur=null; REV=null;
+  const les=LESSONS.find(l=>l.id===id), real=L(id);
+  const rv=S.rv[id]?rvGet(id):null, k=(rv?rv.fin:0)+1;
+  const rs=rv?stats(les,rv.st,rv.sel):null, inprog=!!(rv&&!rv.counted&&rs&&rs.done>0);
+  const secs=les.secs.map((sc,si)=>{ let n=0, w=0;
+    sc.items.forEach(it=>unitKeys(it).forEach(key=>{ n++; const r=real.items[key]; if(r&&(!r.first||r.shown)) w++; }));
+    return {si, tag:sc.tag, title:sc.title, n, w}; });
+  const anyWrong=secs.some(x=>x.w>0);
+  app.innerHTML=`<div class="bar"><button class="back" id="bk">← もくじ</button><span class="ttl">第${les.no}回　復習</span></div>
+  <div class="rvnote"><b>復習は何回でもできる。</b>この結果は<b>成績の記録に入らない</b>し，先生にも送られない。第${les.no}回の記録は，そのまま残っている。</div>
+  ${inprog?`<div class="card"><div class="q">復習 ${rv.k}回目の つづき　${rs.done} / ${rs.total}</div><small class="rvsmall">${rv.sel?"えらんだ所だけ":"ぜんぶ"}</small><div class="rvact"><button class="go" id="rvcont" type="button">つづきからやる</button></div></div>`:""}
+  <div class="card"><div class="q">${inprog?"新しく":""}復習する所をえらぶ</div>
+  <div class="rvact"><button class="go sub" id="selall" type="button">ぜんぶ</button><button class="go sub" id="selwrong" type="button" ${anyWrong?"":"disabled"}>${anyWrong?"1回目でまちがえた所だけ":"まちがえた所はなし"}</button></div>
+  <div class="rvlist">${secs.map(x=>`<label class="rvitem"><input type="checkbox" data-si="${x.si}" checked><span class="rvt"><span class="tag mini" style="background:var(${TAGC[x.tag]})">${x.tag}</span> ${x.title}</span><span class="rvn">${x.n?x.n+"問":"読むだけ"}${x.w?` <b class="rvw">1回目まちがい ${x.w}</b>`:""}</span></label>`).join("")}</div>
+  <div class="rvact"><button class="go" id="rvstart" type="button">復習 ${k}回目をはじめる</button></div>
+  <small class="rvsmall" id="rvmsg">${inprog?"新しくはじめると，いまの復習のとちゅうは消えて，はじめからになる。":""}</small></div>`;
+  document.getElementById("bk").addEventListener("click",home);
+  const boxes=[...app.querySelectorAll("input[data-si]")];
+  document.getElementById("selall").addEventListener("click",()=>boxes.forEach(b=>b.checked=true));
+  document.getElementById("selwrong").addEventListener("click",()=>boxes.forEach(b=>{ b.checked = secs[+b.dataset.si].w>0; }));
+  if(inprog) document.getElementById("rvcont").addEventListener("click",()=>open(id,true));
+  document.getElementById("rvstart").addEventListener("click",()=>{
+    const sel=boxes.filter(b=>b.checked).map(b=>+b.dataset.si);
+    if(!sel.some(i=>secs[i].n>0)){ document.getElementById("rvmsg").textContent="問題のある所を，ひとつ以上えらんでね。"; return; }
+    S.rv[id]={st:freshState(), sel: sel.length===secs.length ? null : sel, k, fin:rv?rv.fin:0, counted:false}; save(); open(id,true);
+  });
+  window.scrollTo(0,0);
+}
+function restartSame(id){ const rv=rvGet(id); S.rv[id]={st:freshState(), sel:rv.sel, k:rv.fin+1, fin:rv.fin, counted:false}; save(); open(id,true); }
+function renderRvEnd(){
+  const box=document.getElementById("rvend"); if(!box||!cur) return;
+  const rv=rvGet(cur.id), s=stats(cur), complete=s.total>0&&s.done>=s.total;
+  if(complete&&!rv.counted){ rv.counted=true; rv.fin=(rv.fin||0)+1; save(); }
+  const id=cur.id;
+  box.innerHTML = complete
+    ? `<div class="q">復習 ${rv.k}回目 おわり！（これで ${rv.fin}回）</div><small class="rvsmall">この復習は，成績の記録には入りません。先生に送った第${cur.no}回の記録は，そのまま残っています。</small>`
+    : `<div class="q">復習 ${rv.k}回目　${s.done} / ${s.total}</div><small class="rvsmall">のこりをやると「おわり」になります。この復習は成績の記録には入りません。</small>`;
+  const row=el("div","rvact");
+  if(complete){ const b0=el("button","go",`もう一度（復習 ${rv.fin+1}回目）`); b0.type="button"; b0.addEventListener("click",()=>restartSame(id)); row.appendChild(b0); }
+  else { const b0=el("button","go sub","この復習をさいしょからやりなおす"); b0.type="button"; b0.addEventListener("click",()=>restartSame(id)); row.appendChild(b0); }
+  const b1=el("button","go sub","復習する所をえらびなおす"); b1.type="button"; b1.addEventListener("click",()=>reviewSetup(id));
+  const b2=el("button","go sub","もくじにもどる"); b2.type="button"; b2.addEventListener("click",home);
+  row.append(b1,b2); box.appendChild(row);
+}
+function open(id, rev){
+  if(rev===undefined) rev = (REV===id);   /* テーマ切りかえなどでの再描画は今のモードのまま */
+  REV = rev ? id : null;
   cur = LESSONS.find(l=>l.id===id);
-  app.innerHTML = `<div class="bar"><button class="back" id="bk">← もくじ</button><span class="ttl">第${cur.no}回　${cur.title}</span><span class="sc" id="sc"></span></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk">← もくじ</button><span class="ttl">第${cur.no}回　${cur.title}${REV?' <span class="rvtag">復習'+rvGet(cur.id).k+'回目</span>':''}</span><span class="sc" id="sc"></span></div>
+  ${REV?'<div class="rvnote"><b>復習モード</b>　'+(rvGet(cur.id).sel?'えらんだ所だけ':'ぜんぶ')+'を解き直せる。この結果は<b>成績の記録に入らない</b>し，先生にも送られない。第'+cur.no+'回の記録は，そのまま残っている。</div>':''}
   <div class="goal"><b>今日のゴール</b>　${cur.goal}</div><div id="secs"></div>`;
   document.getElementById("bk").addEventListener("click", home);
   const box=document.getElementById("secs");
-  cur.secs.forEach(sec=>{
+  const rvSel = REV ? rvGet(cur.id).sel : null;
+  cur.secs.forEach((sec,si)=>{
+    if(rvSel && !rvSel.includes(si)) return;
     const d=document.createElement("section"); d.className="sec";
     d.innerHTML = `<div class="sh"><span class="tag" style="background:var(${TAGC[sec.tag]})">${sec.tag}</span><h2>${sec.title}</h2></div>`;
     sec.items.forEach(it=>d.appendChild(renderItem(it)));
@@ -997,6 +1084,12 @@ function renderSendSum(){
 function renderReflect(){
   const st=L(cur.id);
   const d=el("section","sec");
+  if(REV){
+    d.innerHTML=`<div class="sh"><span class="tag" style="background:var(--t5)">復習</span><h2>復習のようす</h2></div>`;
+    const c=el("div","card"); c.id="rvend"; d.appendChild(c);
+    setTimeout(renderRvEnd,0);
+    return d;
+  }
   d.innerHTML=`<div class="sh"><span class="tag" style="background:var(--t5)">ふりかえり</span><h2>今日の自分をチェック</h2></div>`;
   const c1=el("div","card"); c1.appendChild(el("div","q","今日のゴールは達成できた？"));
   const rate=el("div","rate"); ["◎","○","△"].forEach(x=>{ const b=el("button","opt"+(st.rate===x?" sel":""),x); b.type="button";
