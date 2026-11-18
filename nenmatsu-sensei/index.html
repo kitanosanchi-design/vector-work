@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>学年末テスト いまの様子</title>
+<style>
+:root{ --ink:#1b1f24; --sub:#5b6470; --line:#d5d9de; --acc:#1f3a68; }
+*{ box-sizing:border-box }
+body{ margin:0; background:#f6f7f9; color:var(--ink); font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif; font-size:15px; line-height:1.5 }
+.wrap{ max-width:1100px; margin:0 auto; padding:10px 12px 60px }
+h1{ font-size:19px; margin:4px 0 6px }
+.top{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+.sw a, .sw b{ display:inline-block; padding:5px 14px; border-radius:16px; border:1px solid var(--line); text-decoration:none; font-weight:700 }
+.sw b{ background:var(--acc); color:#fff; border-color:var(--acc) }
+.sw a{ background:#fff; color:var(--acc) }
+.upd{ color:var(--sub); font-size:13.5px }
+.upd.ng{ color:#b3261e; font-weight:700 }
+.chips{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 }
+.chip{ border-radius:10px; padding:5px 10px; font-weight:700; font-size:14px }
+.s-test{ background:#e7f5ec; color:#1d7a3a }
+.s-stop{ background:#fff4e0; color:#a15c00 }
+.s-end{ background:#fdecea; color:#b3261e }
+.s-sent{ background:#e8eef8; color:#1f3a68 }
+.s-start{ background:#eceff2; color:#5b6470 }
+.alert{ background:#fff; border:2px solid #b3261e; border-radius:10px; padding:8px 10px; margin:8px 0 }
+.alert b{ color:#b3261e }
+.tw{ overflow-x:auto; background:#fff; border:1px solid var(--line); border-radius:10px }
+table{ border-collapse:collapse; width:100%; min-width:760px }
+th, td{ border-bottom:1px solid #e6e9ed; padding:6px 7px; text-align:center; white-space:nowrap }
+th{ background:#eef2f8; font-size:13px; position:sticky; top:0 }
+td.nm{ text-align:left }
+tr.r-end td{ background:#fff5f4 }
+tr.r-stop td{ background:#fffaf0 }
+.st{ border-radius:8px; padding:2px 8px; font-weight:700; font-size:13.5px }
+.w{ color:#b3261e; font-weight:700 }
+.note{ color:var(--sub); font-size:13px; margin-top:10px; line-height:1.7 }
+#keyBox{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px; margin:10px 0 }
+#keyBox input{ font-size:17px; padding:8px 10px; border:1px solid #b9c0c8; border-radius:8px; width:14em }
+#keyBox button{ font-size:16px; padding:8px 14px; border:0; border-radius:8px; background:var(--acc); color:#fff; font-weight:700 }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ベクトル 学年末テスト　いまの様子</h1>
+  <div class="top">
+    <span class="sw" id="sw"></span>
+    <span class="upd" id="upd"></span>
+  </div>
+  <div id="keyBox" style="display:none">一覧の合言葉（スプレッドシートの「設定」タブ）：<input id="iKey" autocomplete="off" autocapitalize="off" spellcheck="false"> <button id="bKey">見る</button></div>
+  <div class="chips" id="chips"></div>
+  <div id="alert"></div>
+  <div class="tw"><table><thead><tr><th>組</th><th>番号</th><th>名前</th><th>状態</th><th>最後の合図</th><th>マーク</th><th>残り時間</th><th>警告</th><th>強制終了</th><th>再開</th><th>端末</th><th id="thScore">得点</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="note">
+    20秒ごとに自動で新しくなります。生徒のページは，テスト中に30秒ごとと，マークを送ったとき・離れたときなどに合図を送ります。<br>
+    <b>解答中</b>：合図が75秒以内に来ている。<b>止まっている</b>：75秒以上合図がない（画面が消えた・ページを閉じた・電波がない など。見に行く）。
+    <b>強制終了</b>：画面から離れて終わった（再開コードで続けられる）。<b>送信ずみ</b>（見本は<b>採点ずみ</b>）。<b>開始のみ</b>：「テストをはじめる」の記録はあるが合図がない。<br>
+    合図はサーバーに最大6時間だけ置き，スプレッドシートには書きません。得点・答えの記録は，これまでどおり「記録」タブと一覧にあります。
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+const GAS = "https://script.google.com/macros/s/AKfycbwIR5IBx-IrMZ_fmGpctDrjW_RBKMczwFq-SbLZoaQTfPszURxK4huEsmBA4NI5c5fVWQ/exec";
+const $ = id => document.getElementById(id);
+const STOP = 75;      // 秒：これより長く合図がなければ「止まっている」
+const P = new URLSearchParams(location.hash.slice(1));
+let key = P.get('k') || (function(){ try{ return localStorage.getItem('vecnm.sensei.key') || ''; }catch(e){ return ''; } })();
+let set = P.get('s') === 'mihon' ? 'mihon' : 'honban';
+let timer = null, last = null;
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function jsonp(params){
+  return new Promise((res, rej) => {
+    const cb = '__lv' + Date.now().toString(36) + Math.floor(Math.random()*1e6);
+    const sc = document.createElement('script');
+    const t = setTimeout(() => { fin(); rej(new Error('timeout')); }, 25000);
+    function fin(){ clearTimeout(t); try{ delete window[cb]; }catch(e){ window[cb] = undefined; } sc.remove(); }
+    window[cb] = d => { fin(); res(d); };
+    sc.onerror = () => { fin(); rej(new Error('net')); };
+    sc.src = GAS + '?' + new URLSearchParams(Object.assign({}, params, {cb})).toString();
+    document.head.appendChild(sc);
+  });
+}
+function sw(){
+  $('sw').innerHTML = (set === 'honban' ? '<b>本番</b><a href="#" data-s="mihon">見本</a>' : '<a href="#" data-s="honban">本番</a><b>見本</b>');
+  $('sw').querySelectorAll('a').forEach(a => a.onclick = e => { e.preventDefault(); set = a.dataset.s; location.hash = 'k=' + encodeURIComponent(key) + '&s=' + set; sw(); load(); });
+  $('thScore').textContent = set === 'mihon' ? '最新の点（回数）' : '得点';
+}
+function status(r, now){
+  const age = r.t ? Math.round((now - r.t)/1000) : null;
+  if(r.st === 'ended' || (!r.t && r.rec && !r.rec.sent)) return ['end', '強制終了', age];
+  if(r.st === 'sent' || (set === 'honban' && r.rec && r.rec.sent && r.st !== 'test')) return ['sent', '送信ずみ', age];
+  if(r.st === 'scored') return ['sent', '採点ずみ', age];
+  if(r.st === 'test') return age != null && age < STOP ? ['test', '解答中', age] : ['stop', '止まっている', age];
+  if(r.rec) return ['sent', set === 'mihon' ? '採点ずみ' : (r.rec.sent ? '送信ずみ' : '強制終了'), age];
+  return ['start', '開始のみ', age];
+}
+function ago(s){ if(s == null) return '—'; if(s < 60) return s + '秒前'; if(s < 3600) return Math.floor(s/60) + '分' + (s%60) + '秒前'; return Math.floor(s/3600) + '時間前'; }
+function mmss(s){ if(s == null || s === '') return '—'; s = Math.round(s); return Math.floor(s/60) + ':' + String(s%60).padStart(2, '0'); }
+function render(d){
+  const now = d.now, rows = d.rows.slice();
+  rows.sort((a, b) => String(a.cls).localeCompare(String(b.cls), 'ja', {numeric:true}) || (Number(a.num) - Number(b.num)) || String(a.num).localeCompare(String(b.num)));
+  const cnt = {test:0, stop:0, end:0, sent:0, start:0}, warnList = [];
+  let h = '';
+  rows.forEach(r => {
+    const [k, label, age] = status(r, now);
+    cnt[k]++;
+    if(k === 'end' || k === 'stop') warnList.push([k, r]);
+    const rec = r.rec || {};
+    const lv = Math.max(r.lv || 0, rec.forcedN || 0), rs = Math.max(r.rs || 0, rec.resumeN || 0), wn = Math.max(r.wn || 0, rec.warn || 0);
+    const score = r.rec ? (set === 'mihon' ? rec.score + ' 点（' + rec.count + '回）' : rec.score + ' 点') : '—';
+    h += '<tr class="' + (k === 'end' ? 'r-end' : k === 'stop' ? 'r-stop' : '') + '"><td>' + esc(r.cls) + '</td><td>' + esc(r.num) + '</td><td class="nm">' + esc(r.name) + '</td>'
+       + '<td><span class="st s-' + k + '">' + label + '</span></td><td>' + ago(age) + '</td>'
+       + '<td>' + (r.mk != null ? r.mk : '—') + '</td><td>' + (r.st === 'test' ? mmss(r.rm) : '—') + '</td>'
+       + '<td' + (wn ? ' class="w"' : '') + '>' + wn + '</td><td' + (lv ? ' class="w"' : '') + '>' + lv + '</td><td>' + rs + '</td>'
+       + '<td>' + esc(r.dt || '') + '</td><td>' + score + '</td></tr>';
+  });
+  $('tb').innerHTML = h || '<tr><td colspan="12" style="color:#5b6470">まだだれもいません（生徒が「テストをはじめる」をおすと出ます）</td></tr>';
+  $('chips').innerHTML = '<span class="chip s-test">解答中 ' + cnt.test + '</span><span class="chip s-stop">止まっている ' + cnt.stop + '</span>'
+    + '<span class="chip s-end">強制終了 ' + cnt.end + '</span><span class="chip s-sent">' + (set === 'mihon' ? '採点ずみ ' : '送信ずみ ') + cnt.sent + '</span>'
+    + (cnt.start ? '<span class="chip s-start">開始のみ ' + cnt.start + '</span>' : '') + '<span class="chip s-start">合計 ' + rows.length + '</span>';
+  $('alert').innerHTML = warnList.length ? '<div class="alert"><b>見に行く人：</b>' + warnList.map(([k, r]) => esc(r.cls) + '組' + esc(r.num) + '番 ' + esc(r.name) + '（' + (k === 'end' ? '強制終了' : '止まっている') + '）').join('，') + '</div>' : '';
+  $('upd').className = 'upd';
+  $('upd').textContent = '更新 ' + String(d.at || '').slice(11) + (set === 'honban' ? '　受付：' + (d.accept || '') : '');
+}
+async function load(){
+  clearTimeout(timer);
+  if(!key){ $('keyBox').style.display = ''; return; }
+  try{
+    const d = await jsonp({mode:'live', key, set});
+    if(!d || !d.ok){
+      if(d && d.err === 'key'){ $('keyBox').style.display = ''; $('upd').className = 'upd ng'; $('upd').textContent = '合言葉がちがいます'; return; }
+      throw new Error((d && d.err) || 'ng');
+    }
+    $('keyBox').style.display = 'none';
+    try{ localStorage.setItem('vecnm.sensei.key', key); }catch(e){}
+    last = d; render(d);
+  }catch(e){
+    $('upd').className = 'upd ng';
+    $('upd').textContent = '読みこめませんでした（' + e.message + '）。自動でやり直します。' + (last ? '表は前の内容です。' : '');
+  }
+  timer = setTimeout(load, 20000);
+}
+$('bKey').onclick = () => { key = $('iKey').value.trim(); location.hash = 'k=' + encodeURIComponent(key) + '&s=' + set; load(); };
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') load(); });
+window.__live = { get last(){ return last; }, load };
+sw(); load();
+})();
+</script>
+</body>
+</html>
